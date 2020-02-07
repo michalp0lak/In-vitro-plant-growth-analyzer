@@ -195,7 +195,7 @@ def barcode_reader(image):
     
     return barcode_data
 
-def well_former(mask_properties, tray_col_num = 6, tray_row_num = 8):
+def well_former(mask_properties, col_num, row_num):
 
     class well:
 
@@ -208,10 +208,10 @@ def well_former(mask_properties, tray_col_num = 6, tray_row_num = 8):
 
     wells = []
 
-    row_ids = range(1,tray_row_num+1)
-    row_ids = list(itertools.chain.from_iterable(itertools.repeat(x, tray_col_num) for x in row_ids))
-    col_ids = range(1,tray_col_num+1)
-    col_ids = list(itertools.chain.from_iterable(itertools.repeat(x, tray_row_num) for x in col_ids))
+    row_ids = range(1, row_num+1)
+    row_ids = list(itertools.chain.from_iterable(itertools.repeat(x, col_num) for x in row_ids))
+    col_ids = range(1, col_num+1)
+    col_ids = list(itertools.chain.from_iterable(itertools.repeat(x, row_num) for x in col_ids))
 
 
     row_sort = sorted(mask_properties, key=lambda area: area.centroid[0]);
@@ -350,7 +350,7 @@ def well_shade_search(mask_well, rgb_well):
                     crit = len(object_coordinates[0]) * len(object_coordinates[1])
 
                     #if object is not too big
-                    if(crit < 300000):
+                    if(crit < 17000**2):
 
                         #Than pixels of this object is considered to be plant/seed in resulting mask
                         plant_mask[object_coordinates] = 1
@@ -625,73 +625,99 @@ def alghoritm_comparison(rgb_well, shadearea_mask, bclosearea_mask):
     
     from skimage.color import rgb2hsv
 
+    h,w = rgb_well.shape[0:2]
 
-    #Find best result
+    if(int(np.sum(shadearea_mask)) == h*w and int(np.sum(bclosearea_mask)) == h*w):
 
-    shadearea_coords = np.where(shadearea_mask == 1)
-    bclosearea_coords = np.where(bclosearea_mask == 1)
+        choosen_mask = np.zeros(rgb_well.shape[0:2])
 
-    #find bigger 
-    bigger_area_size = max(shadearea_coords[0].shape[0], bclosearea_coords[0].shape[0])
-    #areas size differernce
-    size_diff = abs(shadearea_coords[0].shape[0]-bclosearea_coords[0].shape[0])
+    elif(int(np.sum(shadearea_mask)) == h*w):
 
-    #Compute means and deviations in h-channel of hsv color space
+        choosen_mask = bclosearea_mask
 
-    #image conversion to hsv color space (equation of conversion: https://www.rapidtables.com/convert/color/rgb-to-hsv.html)
-    hsv_well = rgb2hsv(rgb_well)
-
-    #get hsv image channels
-    h_well, s_well, v_well = cv2.split(hsv_well)
-
-    #stats of first method
-    shadearea_mean = np.mean(h_well[shadearea_coords])
-    shadearea_deviation = np.std(h_well[shadearea_coords])
-
-    #stats of second method
-    bclosearea_mean = np.mean(h_well[bclosearea_coords])
-    bclosearea_deviation = np.std(h_well[bclosearea_coords])
-
-
-
-    # vem vetší pokud jeji odchylka neni upln? mimo - co je mimo? - v
-    # testovanem pripad? je odchylka vetsi oblasti dokonce mensí - je
-    # to tak vždy? (pokud tam neni bordel?)
-
-    #If masked object of bclose method is bigger than masked object of shade method
-    if(bclosearea_coords[0].shape[0] > shadearea_coords[0].shape[0]):
-        #If deviation smaller object is bigger
-        if(bclosearea_deviation < shadearea_deviation):
-
-            #bclosearea method mask is considered to be better result - masked object is more compact
-            choosen_mask = bclosearea_mask
-        #if bclose method deviation is bigger, some noisy objects were probaly added. So shade method mask is considered to be better.
-        else:
-
-            choosen_mask = shadearea_mask
-
-    #If shade method masked object is bigger, this method reult is taken       
-    else:
+    elif(int(np.sum(bclosearea_mask)) == h*w):
 
         choosen_mask = shadearea_mask
 
+    #Find best result
+    
+    else:
+        
+        shadearea_coords = np.where(shadearea_mask == 1)
+        bclosearea_coords = np.where(bclosearea_mask == 1)
+        
+        if(shadearea_coords[0].shape[0] > 0 and bclosearea_coords[0].shape[0] > 0):
+            
+            #find bigger 
+            bigger_area_size = max(shadearea_coords[0].shape[0], bclosearea_coords[0].shape[0])
+            #areas size differernce
+            size_diff = abs(shadearea_coords[0].shape[0]-bclosearea_coords[0].shape[0])
+
+            #Compute means and deviations in h-channel of hsv color space
+
+            #image conversion to hsv color space (equation of conversion: https://www.rapidtables.com/convert/color/rgb-to-hsv.html)
+            hsv_well = rgb2hsv(rgb_well)
+
+            #get hsv image channels
+            h_well, s_well, v_well = cv2.split(hsv_well)
+
+            #stats of first method
+            shadearea_mean = np.mean(h_well[shadearea_coords])
+            shadearea_deviation = np.std(h_well[shadearea_coords])
+
+            #stats of second method
+            bclosearea_mean = np.mean(h_well[bclosearea_coords])
+            bclosearea_deviation = np.std(h_well[bclosearea_coords])
 
 
-    #Potential improvement with using contour/area ratio (This need testing)
+            # vem vetší pokud jeji odchylka neni upln? mimo - co je mimo? - v
+            # testovanem pripad? je odchylka vetsi oblasti dokonce mensí - je
+            # to tak vždy? (pokud tam neni bordel?)
 
-    #perimeter_shade = bwperim(shadearea_mask, n=4)
-    #perimeter_shade_size = np.where(perimeter_shade > 0)[0].shape[0]
-    #shade_area_size = np.where(shadearea_mask > 0)[0].shape[0]
-    #shade_ratio = perimeter_shade_size/shade_area_size
+            #If masked object of bclose method is bigger than masked object of shade method
+            if(bclosearea_coords[0].shape[0] > shadearea_coords[0].shape[0]):
+                #If deviation smaller object is bigger
+                if(bclosearea_deviation < shadearea_deviation):
 
-    #perimeter_bclose = bwperim(bclosearea_mask, n=4)
-    #perimeter_bclose_size = np.where(perimeter_bclose > 0)[0].shape[0]
-    #bclose_area_size = np.where(bclosearea_mask > 0)[0].shape[0]
-    #bclose_ratio = perimeter_bclose_size/bclose_area_size
+                    #bclosearea method mask is considered to be better result - masked object is more compact
+                    choosen_mask = bclosearea_mask
+
+                #if bclose method deviation is bigger, some noisy objects were probaly added. So shade method mask is considered to be better.
+                else:
+
+                    choosen_mask = shadearea_mask
+
+            #If shade method masked object is bigger, this method reult is taken       
+            else:
+
+                choosen_mask = shadearea_mask
+
+        elif(shadearea_coords[0].shape[0] == 0 and bclosearea_coords[0].shape[0] > 0):
+        
+            choosen_mask = bclosearea_mask
+            
+        elif(shadearea_coords[0].shape[0] > 0 and bclosearea_coords[0].shape[0] == 0):
+        
+            choosen_mask = shadearea_mask 
+            
+        else:    
+
+            choosen_mask = shadearea_mask 
+            
+            
+        #Potential improvement with using contour/area ratio (This need testing)
+
+        #perimeter_shade = bwperim(shadearea_mask, n=4)
+        #perimeter_shade_size = np.where(perimeter_shade > 0)[0].shape[0]
+        #shade_area_size = np.where(shadearea_mask > 0)[0].shape[0]
+        #shade_ratio = perimeter_shade_size/shade_area_size
+
+        #perimeter_bclose = bwperim(bclosearea_mask, n=4)
+        #perimeter_bclose_size = np.where(perimeter_bclose > 0)[0].shape[0]
+        #bclose_area_size = np.where(bclosearea_mask > 0)[0].shape[0]
+        #bclose_ratio = perimeter_bclose_size/bclose_area_size
 
     return choosen_mask
-
-
 
 
 
@@ -728,15 +754,15 @@ def well_processor(well, roi, mask):
     return final_mask
 
 
-def image_processor(image, mask_tray, file):
+def image_processor(image, mask, file, col_num, row_num):
     
     assert (type(image)  == np.ndarray), 'rgb_well has to be RGB image' 
     assert (len(image.shape) == 3),'rgb_well has to be RGB image'
     assert np.amin(image) >= 0 & np.amax(image) <= 255, 'rgb_well has to be RGB image'
     
-    assert (type(mask_tray)  == np.ndarray), 'mask_well has to be binary image' 
-    assert (len(mask_tray.shape) == 2), 'mask_well has to be binary image'
-    assert (np.amin(mask_tray) >= 0) & (np.amax(mask_tray) <= 1), 'mask_well has to be binary image'
+    assert (type(mask)  == np.ndarray), 'mask_well has to be binary image' 
+    assert (len(mask.shape) == 2), 'mask_well has to be binary image'
+    assert (np.amin(mask) >= 0) & (np.amax(mask) <= 1), 'mask_well has to be binary image'
     
     assert type(file) == str, 'filename hast be string'
     
@@ -761,23 +787,23 @@ def image_processor(image, mask_tray, file):
     barcode_data = barcode_reader(tray_roi)
     
     #resize mask to roi shape
-    mask_tray = cv2.resize(mask_tray,(w, h),0,0,cv2.INTER_NEAREST)
+    mask = cv2.resize(mask,(w, h),0,0,cv2.INTER_NEAREST)
     
-    tray_plant_mask = np.zeros(tray_roi.shape[0:2])
+    tray_plant_mask = np.zeros(mask.shape)
 
     #find wells in image
     #https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_label.html
-    mask_labels = measure.label(mask_tray*255)
+    mask_labels = measure.label(mask*255)
     #compute propeties of wells
     mask_properties = measure.regionprops(mask_labels)
 
-    wells = well_former(mask_properties, tray_col_num = 6, tray_row_num = 8)
+    wells = well_former(mask_properties, col_num, row_num)
                                      
     data = []
 
     for well in wells:
 
-        segmented_plant_mask = well_processor(well, tray_roi, mask_tray)
+        segmented_plant_mask = well_processor(well, tray_roi, mask)
         value = segmented_plant_mask.sum()/(segmented_plant_mask.shape[0]*segmented_plant_mask.shape[1])
         data.append(dict(zip(('filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','value'),
                              (file, metadata.date, metadata.location, metadata.x_coordinate, metadata.y_coordinate, barcode_data,well.row, well.column, value))))
@@ -791,15 +817,17 @@ def image_processor(image, mask_tray, file):
         tray_plant_mask[tray_coordinates] = 1
         
 
-    tray_perim = bwperim(tray_plant_mask*255) + bwperim(mask_tray*255)
+    plants_perim = bwperim(tray_plant_mask*255) 
+    wells_perim = bwperim(mask*255)
    
-    return data, tray_perim, tray_roi
+    return data, wells_perim, plants_perim, tray_roi
 
-def process_batch(batch_path, mask_path):
+def process_batch(batch_path, col_num, row_num):
     
     assert (type(batch_path)==str) & os.path.exists(batch_path), 'Path to folder with batch of images does not exist'
-    assert (type(mask_path)==str) & os.path.exists(mask_path), 'Path with mask file does not exist'
-    
+    assert (type(row_num)==int)
+    assert (type(col_num)==int)
+
     output_path = batch_path + '/results/'
     
     if(not os.path.exists(output_path)):
@@ -810,14 +838,16 @@ def process_batch(batch_path, mask_path):
 
         
     files = [file for file in os.listdir(batch_path) if file.endswith(formats)]
-    
+    well_num = row_num*col_num
+
     ##Tray mask loading and formatting
-    #Load  of wells from file, which was created in Corel
-    mask_48_plate = scipy.io.loadmat(mask_path)
-    #Get array from file
-    mask_48_plate = mask_48_plate['mask_48']
+    #Load mask of wells from file
+    mask = cv2.imread('C:/Users/polami05/Coding/Repositories/well_experiments/' + str(well_num) +'.png')
+    #Convert image to grayscale
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+
     #Transform to binary image for better wells localization
-    mask_48_plate = (mask_48_plate > 0).astype('uint8')
+    mask = (mask > 0).astype('uint8')
     
     final_data = []
     
@@ -825,14 +855,17 @@ def process_batch(batch_path, mask_path):
         
         image = cv2.imread(batch_path + file)
 
-        image_data, tray_contours, roi = image_processor(image, mask_48_plate, file)
+        image_data, well_contours, plant_contours, roi = image_processor(image, mask, file, col_num, row_num)
 
-        _, contours, _ = cv2.findContours(tray_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        painted_roi = cv2.drawContours(roi, contours, -1, (0, 0, 255), 1)
+        _, contours_wells, _ = cv2.findContours(well_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        _, contours_plants, _ = cv2.findContours(plant_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+       
+        contoured_roi_ = cv2.drawContours(roi, contours_wells, -1, (255, 0, 0), 1)
+        contoured_roi = cv2.drawContours(contoured_roi_, contours_plants, -1, (0, 0, 255), 1)
         
         final_data = final_data + image_data
         
-        cv2.imwrite(output_path + file, painted_roi)
+        cv2.imwrite(output_path + file, contoured_roi)
         
         
     df = pd.DataFrame(final_data)
