@@ -18,6 +18,8 @@ import scipy.io
 from skimage import measure
 import pandas as pd
 
+import global_variables
+
 
 def image_metadata_handler(filename):
     
@@ -123,8 +125,8 @@ def roi_cropper(image):
     down_boundary = half2 + down_boundary[0] 
 
     #cropp roi
-    #roi = cropped[up_boundary[0]:down_boundary[0],left_boundary[0]:right_boundary[0],:]
-    roi = cropped[0:down_boundary[0],left_boundary[0]:right_boundary[0],:]
+    roi = cropped[up_boundary[0]:down_boundary[0],left_boundary[0]:right_boundary[0],:]
+    #roi = cropped[0:down_boundary[0],left_boundary[0]:right_boundary[0],:]
 
     return roi
 
@@ -608,6 +610,59 @@ def well_bclosearea_search(mask_well, rgb_well):
     return plant_mask
 
 
+def well_lab_search(mask_well, rgb_well):
+    
+    assert (type(rgb_well)  == np.ndarray), 'rgb_well has to be RGB image' 
+    assert (len(rgb_well.shape) == 3),'rgb_well has to be RGB image'
+    assert np.amin(rgb_well) >= 0 & np.amax(rgb_well) <= 255, 'rgb_well has to be RGB image'
+    
+    assert (type(mask_well)  == np.ndarray), 'mask_well has to be binary image' 
+    assert (len(mask_well.shape) == 2), 'mask_well has to be binary image'
+    assert (np.amin(mask_well) >= 0) & (np.amax(mask_well) <= 1), 'mask_well has to be binary image'
+
+    lab_well = cv2.cvtColor(rgb_well, cv2.COLOR_BGR2LAB)
+
+    #get image channels
+    l_well, a_well, b_well = cv2.split(lab_well)
+    b_median = np.median(b_well)
+    
+    #print(np.median(b_well))
+    l_well_segm = ((l_well > 110) & (l_well < 210 - (230-np.median(l_well)))).astype('uint8')
+    
+    #noise filtering from segmented image
+    green_plant = median_filter(l_well_segm, 3)
+    green_plant[~mask_well.astype('bool')] = 0
+    #green_plant = l_well_segm
+    
+    #Find objects/labels in filtered well
+    well_labels = measure.label(green_plant)
+    #Compute object properties
+    well_objects = measure.regionprops(well_labels)
+
+    plant_mask = np.zeros(rgb_well.shape[0:2]) 
+    
+    #Check for 200 pixels minimum of object size
+    for i, well_object in enumerate(well_objects):
+        
+        object_coordinates = np.where(well_labels == well_object.label)
+        #print(len(object_coordinates[0]))
+        
+        #Check for 200 pixels minimum of object
+        if(len(object_coordinates[0]) > 200 and len(object_coordinates[0]) < 5000):
+
+            
+            #print(np.median(b_well[object_coordinates]))
+            
+            #compute median of b-channel of given labeled object
+            b_value = np.median(b_well[object_coordinates])
+
+            if(abs(b_median-b_value) > 4):
+ 
+                plant_mask[object_coordinates] = 1 
+    
+    return plant_mask
+
+
 def alghoritm_comparison(rgb_well, shadearea_mask, bclosearea_mask):
     
     #Check of input arguments correctness
@@ -745,13 +800,19 @@ def well_processor(well, roi, mask):
     mask_well = mask[up_row:down_row,left_column:right_column]
 
     # evaluation of well with different algorithm
-    shadearea_mask = well_shade_search(mask_well, rgb_well)
-    bclosearea_mask = well_bclosearea_search(mask_well, rgb_well)
+    #shadearea_mask = well_shade_search(mask_well, rgb_well)
+    #bclosearea_mask = well_bclosearea_search(mask_well, rgb_well)
+    lab_mask = well_lab_search(mask_well, rgb_well)
 
     #comparison of algorithms
-    final_mask = alghoritm_comparison(rgb_well, shadearea_mask, bclosearea_mask)
-                    
-    return final_mask
+    #final_mask = alghoritm_comparison(rgb_well, shadearea_mask, bclosearea_mask)
+    final_mask = lab_mask 
+    
+    plant_frame = rgb_well[np.where(final_mask>0)]
+
+    bgr_means = np.mean(plant_frame ,axis=tuple(range(plant_frame.ndim-1)))
+
+    return final_mask, bgr_means
 
 
 def image_processor(image, mask, file, col_num, row_num):
@@ -803,10 +864,13 @@ def image_processor(image, mask, file, col_num, row_num):
 
     for well in wells:
 
-        segmented_plant_mask = well_processor(well, tray_roi, mask)
-        value = segmented_plant_mask.sum()/(segmented_plant_mask.shape[0]*segmented_plant_mask.shape[1])
-        data.append(dict(zip(('filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','value'),
-                             (file, metadata.date, metadata.location, metadata.x_coordinate, metadata.y_coordinate, barcode_data,well.row, well.column, value))))
+        segmented_plant_mask, means = well_processor(well, tray_roi, mask)
+
+        pixels = segmented_plant_mask.sum()
+
+        data.append(dict(zip(('filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean'),
+                             (file, metadata.date, metadata.location, metadata.x_coordinate, metadata.y_coordinate, barcode_data,well.row, well.column, pixels, 
+                                means[2], means[1], means[0]))))
         
         
         well_coordinates = np.where(segmented_plant_mask>0)
@@ -822,54 +886,6 @@ def image_processor(image, mask, file, col_num, row_num):
    
     return data, wells_perim, plants_perim, tray_roi
 
-def process_batch(batch_path, col_num, row_num):
-    
-    assert (type(batch_path)==str) & os.path.exists(batch_path), 'Path to folder with batch of images does not exist'
-    assert (type(row_num)==int)
-    assert (type(col_num)==int)
-
-    output_path = batch_path + '/results/'
-    
-    if(not os.path.exists(output_path)):
-        
-        os.makedirs(output_path)
-    
-    formats = ('.JPG','.jpg','.PNG','.png','.bmp','.BMP','.TIFF','.tiff','.TIF','.tif')
-
-        
-    files = [file for file in os.listdir(batch_path) if file.endswith(formats)]
-    well_num = row_num*col_num
-
-    ##Tray mask loading and formatting
-    #Load mask of wells from file
-    mask = cv2.imread('C:/Users/polami05/Coding/Repositories/well_experiments/' + str(well_num) +'.png')
-    #Convert image to grayscale
-    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-
-    #Transform to binary image for better wells localization
-    mask = (mask > 0).astype('uint8')
-    
-    final_data = []
-    
-    for file in files:
-        
-        image = cv2.imread(batch_path + file)
-
-        image_data, well_contours, plant_contours, roi = image_processor(image, mask, file, col_num, row_num)
-
-        _, contours_wells, _ = cv2.findContours(well_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        _, contours_plants, _ = cv2.findContours(plant_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-       
-        contoured_roi_ = cv2.drawContours(roi, contours_wells, -1, (255, 0, 0), 1)
-        contoured_roi = cv2.drawContours(contoured_roi_, contours_plants, -1, (0, 0, 255), 1)
-        
-        final_data = final_data + image_data
-        
-        cv2.imwrite(output_path + file, contoured_roi)
-        
-        
-    df = pd.DataFrame(final_data)
-    df.to_excel(output_path + '/batch_result.xlsx')
 
 
 ##############HELPERS
@@ -1069,3 +1085,68 @@ def rgb2LAB(image):
     Lab = cv2.merge((L,a,b))
     
     return Lab
+
+
+
+
+if __name__ == '__main__':
+
+    assert (type(global_variables.batch_path)==str) & os.path.exists(global_variables.batch_path), 'Path to folder with batch of images does not exist'
+    assert (type(global_variables.row_num)==int), 'Number of rows has to be integer'
+    assert (type(global_variables.col_num)==int), 'Number of columns has to be integer'
+
+    well_num = global_variables.row_num*global_variables.col_num
+
+    assert os.path.exists(global_variables.masks_path + str(well_num) +'.png'), 'Mask does not exist'
+    
+    output_path = global_variables.batch_path + '/results/'
+    
+    if(not os.path.exists(output_path)):
+        
+        os.makedirs(output_path)
+    
+    formats = ('.JPG','.jpg','.PNG','.png','.bmp','.BMP','.TIFF','.tiff','.TIF','.tif')
+
+        
+    files = [file for file in os.listdir(global_variables.batch_path) if file.endswith(formats)]
+    
+    ##Tray mask loading and formatting
+    #Load mask of wells from file
+    mask = cv2.imread(global_variables.masks_path + str(well_num) +'.png')
+    #Convert image to grayscale
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+
+    #Transform to binary image for better wells localization
+    mask = (mask > 0).astype('uint8')
+    
+    final_data = []
+    
+    f = open(output_path + "failures.txt","w+")
+
+    for file in files[0:10]:
+
+        try:
+        
+            image = cv2.imread(global_variables.batch_path + file)
+
+            image_data, well_contours, plant_contours, roi = image_processor(image, mask, file, global_variables.col_num, global_variables.row_num)
+
+            _, contours_wells, _ = cv2.findContours(well_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+            _, contours_plants, _ = cv2.findContours(plant_contours.astype('uint8'), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+           
+            contoured_roi_ = cv2.drawContours(roi, contours_wells, -1, (255, 0, 0), 1)
+            contoured_roi = cv2.drawContours(contoured_roi_, contours_plants, -1, (0, 0, 255), 1)
+            
+            final_data = final_data + image_data
+            
+            cv2.imwrite(output_path + file, contoured_roi)
+
+        except Exception as e:
+
+            print(e)
+            f.write(file + '\n')
+        
+        
+    df = pd.DataFrame(final_data)
+    df = df[['filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
+    df.to_excel(output_path + '/batch_result.xlsx')
