@@ -1109,7 +1109,7 @@ if __name__ == '__main__':
     formats = ('.JPG','.jpg','.PNG','.png','.bmp','.BMP','.TIFF','.tiff','.TIF','.tif')
 
         
-    files = [file for file in os.listdir(global_variables.batch_path) if file.endswith(formats)]
+    files = [file for file in os.listdir(batch_path) if file.endswith(formats)]
     
     ##Tray mask loading and formatting
     #Load mask of wells from file
@@ -1128,7 +1128,7 @@ if __name__ == '__main__':
 
         try:
         
-            image = cv2.imread(global_variables.batch_path + file)
+            image = cv2.imread(batch_path + file)
 
             image_data, well_contours, plant_contours, roi = image_processor(image, mask, file, global_variables.col_num, global_variables.row_num)
 
