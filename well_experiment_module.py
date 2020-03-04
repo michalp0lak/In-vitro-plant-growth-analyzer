@@ -1091,7 +1091,7 @@ def rgb2LAB(image):
 
 if __name__ == '__main__':
 
-    assert (type(global_variables.batch_path)==str) & os.path.exists(global_variables.batch_path), 'Path to folder with batch of images does not exist'
+    assert (type(global_variables.path)==str) & os.path.exists(global_variables.path), 'Path to folder with batch of images does not exist'
     assert (type(global_variables.row_num)==int), 'Number of rows has to be integer'
     assert (type(global_variables.col_num)==int), 'Number of columns has to be integer'
 
@@ -1099,7 +1099,8 @@ if __name__ == '__main__':
 
     assert os.path.exists(global_variables.masks_path + str(well_num) +'.png'), 'Mask does not exist'
     
-    output_path = global_variables.batch_path + '/results/'
+    batch_path = global_variables.path + '/batch/'
+    output_path = batch_path + 'results/'
     
     if(not os.path.exists(output_path)):
         
@@ -1123,7 +1124,7 @@ if __name__ == '__main__':
     
     f = open(output_path + "failures.txt","w+")
 
-    for file in files[0:10]:
+    for file in files:
 
         try:
         

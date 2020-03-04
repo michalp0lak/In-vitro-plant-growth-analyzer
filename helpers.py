@@ -1,3 +1,7 @@
+import global_variables
+from shutil import copyfile
+import os
+
 centroids = [(135,145), (135,380), (135,615), (135,850), (135,1085), (135,1330),
              (370,145), (370,380), (370,615), (370,850), (370,1085), (370,1330),
              (605,145), (605,380), (605,615), (605,850), (605,1085), (605,1330),
@@ -44,11 +48,14 @@ def create_well_mask(roi, centroids):
 
 
 
-path = 'D:/Data_projects/2020-01-18--12-55-15/'
-
-def form_images(path)
+def form_images(path):
 
     batch_path = path +'batch/'
+
+    if(not os.path.exists(batch_path)):
+        
+        os.makedirs(batch_path)
+
     rounds = [file for file in os.listdir(path + 'rounds/')]
 
     time_stream = open(path + "start-date.txt", "r")
@@ -90,5 +97,13 @@ def form_images(path)
 
             ID = [item[1] for item in tray_id if item[0] == int(tray)][0]
 
-            os.rename(image_path + 'image.png', batch_path + 'rgb_exp-' + exp_date + '_date-' + real_date + '_round-' + 
+            #os.rename(image_path + 'image.png', batch_path + 'rgb_exp-' + exp_date + '_date-' + real_date + '_round-' + 
+                      #str(round_num) + '_tray-' + ID + '_cam-1.png')
+
+            copyfile(image_path + 'image.png', batch_path + 'rgb_exp-' + exp_date + '_date-' + real_date + '_round-' + 
                       str(round_num) + '_tray-' + ID + '_cam-1.png')
+
+
+if __name__ == '__main__':
+
+    form_images(global_variables.path)
