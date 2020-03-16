@@ -38,7 +38,7 @@ The output of analysis is in **results** folder containing raw images with paint
   - **g_mean** - mean of green-channel of plant area
   - **b_mean** - mean of blue-channel of plant area
   
-  ##User Guide
+  ## User Guide
   
   1. From **master** branch download **well_experiments** repository with  green download button in top-right corner of git page layout. Download repository as a zip file.
   2. Unzip repository folder to arbitrary path in your computer.
