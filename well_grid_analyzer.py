@@ -245,7 +245,7 @@ def well_former(mask_properties, col_num, row_num):
     return wells
 
 
-def well_shade_search(mask_well, rgb_well, h_max=0.5, h_min=0.17, alpha = 25, plant_min_size=100, plant_max_size=5000, green_index_minimum=0.05, max_percentage_level=0.8, hole_size_crit=0.2):
+def well_shade_search(mask_well, rgb_well, h_max=0.5, h_min=0.17, alpha = 25, plant_min_size=100, plant_max_size=8000, green_index_minimum=0.05, max_percentage_level=0.8, hole_size_crit=0.2):
     
     assert (type(rgb_well)  == np.ndarray), 'rgb_well has to be RGB image' 
     assert (len(rgb_well.shape) == 3),'rgb_well has to be RGB image'
@@ -390,7 +390,7 @@ def well_shade_search(mask_well, rgb_well, h_max=0.5, h_min=0.17, alpha = 25, pl
 
 
 
-def well_bclosearea_search(mask_well, rgb_well, h_max=0.5, h_min=0.17, alpha = 25, plant_min_size=100, plant_max_size=5000, neighbor_distance=10, max_percentage_level=2/3, hole_size_crit=0.2):
+def well_bclosearea_search(mask_well, rgb_well, h_max=0.5, h_min=0.17, alpha = 25, plant_min_size=100, plant_max_size=8000, neighbor_distance=10, max_percentage_level=2/3, hole_size_crit=0.2):
     
     assert (type(rgb_well)  == np.ndarray), 'rgb_well has to be RGB image' 
     assert (len(rgb_well.shape) == 3),'rgb_well has to be RGB image'
