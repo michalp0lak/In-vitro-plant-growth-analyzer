@@ -1,4 +1,4 @@
-# # Well analyzer software
+# Well analyzer software
 
 ## Authors
 Michal Polak [1]
