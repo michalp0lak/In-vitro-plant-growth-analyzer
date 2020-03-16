@@ -1,3 +1,5 @@
+version = '1.0.0'
+
 path = 'D:/Data_projects/NATA1/XY20_03/'
 col_num = 6
 row_num = 8
