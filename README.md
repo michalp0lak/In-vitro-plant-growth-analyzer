@@ -43,9 +43,9 @@ The output of analysis is in **results** folder containing raw images with paint
   1. From **master** branch download **well_experiments** repository with  green download button in top-right corner of git page layout. Download repository as a zip file.
   2. Unzip repository folder to arbitrary path in your computer.
   3. At your local computer in unziped repository you can find **global_variables.py** file, inthis file modify:
-    - 3.a. path = 'path to folder with data'
-    - 3.b. masks_path = 'this folder is in unziped repository folder (folder name is masks), you have to modify it according to path on your local machine'
-    - 3.c. col_num, row_num - With nuber of rows and columns you specify, which type of well grid is used for experiment. Grid size has to be standardized. It can't be choosed arbitrary.
+    - path = 'path to folder with data'
+    - masks_path = 'this folder is in unziped repository folder (folder name is masks), you have to modify it according to path on your local machine'
+    - col_num, row_num - With nuber of rows and columns you specify, which type of well grid is used for experiment. Grid size has to be standardized. It can't be choosed arbitrary.
   4. Start Anaconda prompt terminal
   5. Navigate python interpreter into repository folder = In Anaconda prompt terminal type **cd 'path of unziped repository'**
   6. Install software dependencies = In Anaconda prompt terminal type **pip install -r requirements.txt**
