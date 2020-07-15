@@ -1,6 +1,7 @@
-import global_variables
-from shutil import copyfile
-import os
+import cv2
+import numpy as np
+import inspect
+import pandas as pd
 
 centroids = [(135,145), (135,380), (135,615), (135,850), (135,1085), (135,1330),
              (370,145), (370,380), (370,615), (370,850), (370,1085), (370,1330),
@@ -36,6 +37,7 @@ def show_wells(roi, centroids):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+
 def create_well_mask(roi, centroids):
 
     mask = np.zeros(roi.shape)
@@ -47,63 +49,36 @@ def create_well_mask(roi, centroids):
     cv2.imwrite('C:/Users/polami05/Coding/Repositories/well_experiments/' + str(len(centroids)) + '.png',mask)
 
 
+def get_default_args(func):
+    signature = inspect.signature(func)
+    return {
+        k: v.default
+        for k, v in signature.parameters.items()
+        if v.default is not inspect.Parameter.empty
+    }
 
-def form_images(path):
 
-    batch_path = path +'batch/'
+def chunk(l, n):
+    # loop over the list in n-sized chunks
+    for i in range(0, len(l), n):
+        # yield the current n-sized chunk to the calling function
+        yield l[i: i + n]
 
-    if(not os.path.exists(batch_path)):
+
+
+
+def barcode_corrector(data):
+    
+    count_data = data.groupby(['location','barcode_data']).size().reset_index().rename(columns={0:'count'})
+    
+    for loc in count_data['location'].unique():
+    
+        location_data = count_data[count_data['location'] == loc]
+        most_probable_barcode = location_data.loc[location_data ['count'].idxmax()]['barcode_data']
         
-        os.makedirs(batch_path)
+        if most_probable_barcode:
 
-    rounds = [file for file in os.listdir(path + 'rounds/')]
-
-    time_stream = open(path + "start-date.txt", "r")
-    time = time_stream.readline()
-    spl = time.split(' ')
-
-    date = spl[0].split('/')
-    Time = spl[1].split(':')
-    exp_date = date[2] + '-' + date[0] + '-' + date[1] + '-' + Time[0] + '-' + Time[1] + '-' + Time[2]
-
-
-    for Round in rounds:
-
-        round_path = path + 'rounds/' + Round +  '/'
-        round_num = int(Round)
-
-        tray_id = list()
-
-        with open(round_path + "id.txt", "r") as f:
-
-            for line in f:
-                sp = line.split('\t')
-                tray_id.append((int(sp[0]),sp[1].split('\n')[0]))
-
-        trays_path = round_path + 'trays/'
-        trays = [file for file in os.listdir(trays_path)]
-
-        for tray in trays:
-
-            image_path = trays_path + tray + '/' + 'rgbs/' + '01/'
-
-            time_stream = open(image_path + "start-date.txt", "r")
-            time = time_stream.readline()
-            spl = time.split(' ')
-
-            date = spl[0].split('/')
-            Time = spl[1].split(':')
-            real_date = date[2] + '-' + date[0] + '-' + date[1] + '-' + Time[0] + '-' + Time[1] + '-' + Time[2]
-
-            ID = [item[1] for item in tray_id if item[0] == int(tray)][0]
-
-            #os.rename(image_path + 'image.png', batch_path + 'rgb_exp-' + exp_date + '_date-' + real_date + '_round-' + 
-                      #str(round_num) + '_tray-' + ID + '_cam-1.png')
-
-            copyfile(image_path + 'image.png', batch_path + 'rgb_exp-' + exp_date + '_date-' + real_date + '_round-' + 
-                      str(round_num) + '_tray-' + ID + '_cam-1.png')
-
-
-if __name__ == '__main__':
-
-    form_images(global_variables.path)
+            indexes = data[data['location'] == loc].index
+            data.loc[indexes, 'barcode_data'] = most_probable_barcode
+            
+    return data
