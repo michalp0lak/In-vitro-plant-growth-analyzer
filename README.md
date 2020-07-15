@@ -47,7 +47,7 @@ The output of analysis is in **results** folder containing raw images with paint
    - masks_path = 'this folder is in unziped repository folder (folder name is masks), you have to modify it according to path on your local machine'
    - col_num, row_num - With nuber of rows and columns you specify, which type of well grid is used for experiment. Grid size has to be standardized. It can't be choosed arbitrary.
   4. Start Anaconda prompt terminal
-  5. Navigate python interpreter into repository folder = In Anaconda prompt terminal type **cd path of unziped repository**
+  5. Navigate python interpreter into repository folder = In Anaconda prompt terminal type **cd path/of/unziped/repository/**
   6. Install software dependencies = In Anaconda prompt terminal type **pip install -r requirements.txt**
   7. If you exported data from PSI storage system you need form images into proper format for analysis = In Anaconda prompt terminal type **python create_batch.py**. After **create_batch.py** execution you should find new folder **batch** in your data folder. Here you can find batch of images, which is used for analysis.
   8. Analyse your data = In Anaconda prompt terminal type **python exec.py** and wait for your results.
