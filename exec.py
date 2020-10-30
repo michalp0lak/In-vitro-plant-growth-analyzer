@@ -97,7 +97,7 @@ if __name__ == '__main__':
             frames.append(pd.read_excel(temp_path + xlsx))
             
         structured_result = pd.concat(frames, ignore_index=True)
-        structured_result = structured_result[['filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
+        structured_result = structured_result[['filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
         structured_result = hs.barcode_corrector(structured_result)
 
         structured_result.sort_values(by=['location', 'date', 'well_row','well_column'])
@@ -116,10 +116,6 @@ if __name__ == '__main__':
             os.remove(temp_path+f)
             
         os.rmdir(temp_path)
-
-
-        agg_structured_result = structured_result.groupby(['filename','date','location', 'x_coordinate','y_coordinate', 'well_row'])['pixel_num', 'r_mean', 'g_mean', 'b_mean'].mean().reset_index()
-        agg_structured_result.to_excel(output_path + '/aggregated_exp_result.xlsx')
 
 
         analysis_configuration = {'version': global_variables.version, 'plate': well_num,'image_metadata_handler':hs.get_default_args(imps.image_metadata_handler), 'roi_cropper':hs.get_default_args(imps.roi_cropper),

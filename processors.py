@@ -91,9 +91,10 @@ def image_processor(image, mask, file, col_num, row_num):
         segmented_plant_mask, means = well_processor(well, tray_roi, mask)
 
         pixels = segmented_plant_mask.sum()
+        plant_id = str(int(barcode_data[-3:])) + '_' + str(well.row) + '_' + str(well.column)
 
-        data.append(dict(zip(('filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean'),
-                             (file, metadata.date, metadata.location, metadata.x_coordinate, metadata.y_coordinate, barcode_data,well.row, well.column, pixels, 
+        data.append(dict(zip(('filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean'),
+                             (file, metadata.date, metadata.time, metadata.location, metadata.x_coordinate, metadata.y_coordinate, plant_id, barcode_data, well.row, well.column, pixels, 
                                 means[2], means[1], means[0]))))
         
         
@@ -153,6 +154,6 @@ def process_images(imageLoad):
             f.write(imageName + '\n')
     
     df = pd.DataFrame(final_data)
-    df = df[['filename', 'date', 'location', 'x_coordinate', 'y_coordinate', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
+    df = df[['filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
     df.sort_values(by=['location', 'date', 'well_row','well_column'])
     df.to_excel(imageLoad["temp_path"] + '/batch_result_{}.xlsx'.format(imageLoad["id"]))

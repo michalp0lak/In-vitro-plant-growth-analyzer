@@ -10,19 +10,28 @@ def image_metadata_handler(filename):
     #define  output object
     class IMAGE_METADATA:
         
-            def __init__(self, date, x_coordinate, y_coordinate, location):
+            def __init__(self, date, x_coordinate, y_coordinate, location, time):
 
                 self.date = date
                 self.x_coordinate = x_coordinate
                 self.y_coordinate = y_coordinate
                 self.location = location
+                self.time = time
 
     #split filename
     metadata = filename.split('_')
     #check if filename is in 6-component format
     assert len(metadata) == 6, 'Format of filename is wrong'
+
+    #date metadata
+    start_metadata = metadata[1].split('-')
+    #date formatting
+    exp_start = datetime.datetime(int(start_metadata[1]), int(start_metadata[2]), int(start_metadata[3]), int(start_metadata[4]), int(start_metadata[5]), int(start_metadata[6]),)
     
-    if metadata[2] == 'date-0000-00-00-00-00-00': date = None
+    if metadata[2] == 'date-0000-00-00-00-00-00': 
+        
+        date = None
+        time = None
 
     else:
 
@@ -30,6 +39,14 @@ def image_metadata_handler(filename):
         date_metadata = metadata[2].split('-')
         #date formatting
         date = datetime.datetime(int(date_metadata[1]), int(date_metadata[2]), int(date_metadata[3]), int(date_metadata[4]), int(date_metadata[5]), int(date_metadata[6]),)
+
+        #date metadata
+        start_metadata = metadata[1].split('-')
+        #date formatting
+        exp_start = datetime.datetime(int(start_metadata[1]), int(start_metadata[2]), int(start_metadata[3]), int(start_metadata[4]), int(start_metadata[5]), int(start_metadata[6]),)
+
+        time = (date - exp_start).total_seconds() / 3600
+
 
     #tray metadata
     tray = metadata[4]
@@ -42,7 +59,7 @@ def image_metadata_handler(filename):
     #tray location
     location = tray.split('-')[1]
     #assign metadata to result object
-    image_metadata = IMAGE_METADATA(date, x_coordinate, y_coordinate, location) 
+    image_metadata = IMAGE_METADATA(date, x_coordinate, y_coordinate, location, time) 
     
     return image_metadata
 
