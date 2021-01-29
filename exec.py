@@ -1,5 +1,5 @@
 import time
-import os
+import os, sys
 import warnings
 from multiprocessing import cpu_count
 from multiprocessing import Pool
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
         for xlsx in xlsx_files:
             
-            frames.append(pd.read_excel(temp_path + xlsx))
+            frames.append(pd.read_excel(temp_path + xlsx, engine='openpyxl'))
             
         structured_result = pd.concat(frames, ignore_index=True)
         structured_result = structured_result[['filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]
@@ -131,6 +131,13 @@ if __name__ == '__main__':
         print("[INFO] ANALYSIS WAS FINISHED")
 
     except Exception as e:
-        print(e)
+        
+        exception_type, exception_object, exception_traceback = sys.exc_info()
+
+        filename = exception_traceback.tb_frame.f_code.co_filename
+
+        line_number = exception_traceback.tb_lineno
+        
+        print('{} - {}: '.format(filename, line_number, exception_traceback))
         
     print("--- %s seconds ---" % (time.time() - start_time))

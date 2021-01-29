@@ -7,6 +7,7 @@ from skimage import measure
 import analysis_tools as als
 import global_variables
 import impreps as imps
+import os,sys
 
 def well_processor(well, roi, mask):
     
@@ -61,55 +62,69 @@ def image_processor(image, mask, file, col_num, row_num):
     assert (np.amin(mask) >= 0) & (np.amax(mask) <= 1), 'mask_well has to be binary image'
     
     assert type(file) == str, 'filename hast be string'
+    
+    try:
+                
+        metadata = imps.image_metadata_handler(file)
+        
+        #Crop tray
+        tray_roi = imps.roi_cropper(image)
+        h,w = tray_roi.shape[0:2]
+        
+        #Decode barcode dat
+        barcode_data = imps.barcode_reader(tray_roi)
+        
+        #resize mask to roi shape
+        mask = cv2.resize(mask,(w, h),0,0,cv2.INTER_NEAREST)
+        
+        tray_plant_mask = np.zeros(mask.shape)
+
+        #find wells in image
+        #https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_label.html
+        mask_labels = measure.label(mask*255)
+        #compute propeties of wells
+        mask_properties = measure.regionprops(mask_labels)
+
+        wells = als.well_former(mask_properties, col_num, row_num)
+                                        
+        data = []
+
+        for well in wells:
+
+            segmented_plant_mask, means = well_processor(well, tray_roi, mask)
+
+            pixels = segmented_plant_mask.sum()
             
-    metadata = imps.image_metadata_handler(file)
+            if barcode_data: plant_id = str(int(barcode_data[-3:])) + '_' + str(well.row) + '_' + str(well.column)
+            else: plant_id = None
+
+            data.append(dict(zip(('filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean'),
+                                (file, metadata.date, metadata.time, metadata.location, metadata.x_coordinate, metadata.y_coordinate, plant_id, barcode_data, well.row, well.column, pixels, 
+                                    means[2], means[1], means[0]))))
+            
+            
+            well_coordinates = np.where(segmented_plant_mask>0)
+            cols = np.round(well_coordinates[0]+well.bbox[0])
+            rows = np.round(well_coordinates[1]+well.bbox[1])
+
+            tray_coordinates = (cols,rows)
+            tray_plant_mask[tray_coordinates] = 1
+            
+
+        plants_perim = als.bwperim(tray_plant_mask*255, n=4) 
+        wells_perim = als.bwperim(mask*255, n=4)
     
-    #Crop tray
-    tray_roi = imps.roi_cropper(image)
-    h,w = tray_roi.shape[0:2]
+        return data, wells_perim, plants_perim, tray_roi
     
-    #Decode barcode dat
-    barcode_data = imps.barcode_reader(tray_roi)
-    
-    #resize mask to roi shape
-    mask = cv2.resize(mask,(w, h),0,0,cv2.INTER_NEAREST)
-    
-    tray_plant_mask = np.zeros(mask.shape)
-
-    #find wells in image
-    #https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_label.html
-    mask_labels = measure.label(mask*255)
-    #compute propeties of wells
-    mask_properties = measure.regionprops(mask_labels)
-
-    wells = als.well_former(mask_properties, col_num, row_num)
-                                     
-    data = []
-
-    for well in wells:
-
-        segmented_plant_mask, means = well_processor(well, tray_roi, mask)
-
-        pixels = segmented_plant_mask.sum()
-        plant_id = str(int(barcode_data[-3:])) + '_' + str(well.row) + '_' + str(well.column)
-
-        data.append(dict(zip(('filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean'),
-                             (file, metadata.date, metadata.time, metadata.location, metadata.x_coordinate, metadata.y_coordinate, plant_id, barcode_data, well.row, well.column, pixels, 
-                                means[2], means[1], means[0]))))
+    except Exception as e:
         
-        
-        well_coordinates = np.where(segmented_plant_mask>0)
-        cols = np.round(well_coordinates[0]+well.bbox[0])
-        rows = np.round(well_coordinates[1]+well.bbox[1])
+            exception_type, exception_object, exception_traceback = sys.exc_info()
 
-        tray_coordinates = (cols,rows)
-        tray_plant_mask[tray_coordinates] = 1
-        
+            filename = exception_traceback.tb_frame.f_code.co_filename
 
-    plants_perim = als.bwperim(tray_plant_mask*255, n=4) 
-    wells_perim = als.bwperim(mask*255, n=4)
-   
-    return data, wells_perim, plants_perim, tray_roi
+            line_number = exception_traceback.tb_lineno
+            
+            print('{} - {}: {}'.format(filename, line_number, exception_object))
 
 
 def process_images(imageLoad):
@@ -150,8 +165,15 @@ def process_images(imageLoad):
             
         except Exception as e:
 
-            print(e)
-            f.write(imageName + '\n')
+            exception_type, exception_object, exception_traceback = sys.exc_info()
+
+            filename = exception_traceback.tb_frame.f_code.co_filename
+
+            line_number = exception_traceback.tb_lineno
+        
+            print('{} - {}: {}'.format(filename, line_number, exception_object))
+            
+            f.write('{},{filename},{line_numbe},{exception_tracebac}'.format(imageName) + '\n')
     
     df = pd.DataFrame(final_data)
     df = df[['filename', 'date', 'time', 'location', 'x_coordinate', 'y_coordinate', 'plant_id', 'barcode_data','well_row','well_column','pixel_num','r_mean', 'g_mean', 'b_mean']]

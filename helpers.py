@@ -64,8 +64,13 @@ def chunk(l, n):
         # yield the current n-sized chunk to the calling function
         yield l[i: i + n]
 
-
-
+def is_integer(n):
+    try:
+        float(n)
+    except ValueError:
+        return False
+    else:
+        return float(n).is_integer()
 
 def barcode_corrector(data):
     

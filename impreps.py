@@ -3,7 +3,7 @@ import numpy as np
 import pyzbar.pyzbar as pz
 import datetime
 import analysis_tools as als
-
+import helpers as hs
 
 def image_metadata_handler(filename):
 
@@ -213,10 +213,10 @@ def barcode_reader(image, equalization_constant=140, border_size=100, thresh_shi
 
                 barcode_reader_output = pz.decode(barcode_sharp)
                 
-    barcode_data = None
+    barcode = None
     
     if(barcode_reader_output):
-        
-        barcode_data = barcode_reader_output[0][0].decode("UTF-8")     
+        barcode_data = barcode_reader_output[0][0].decode("UTF-8")
+        if hs.is_integer(barcode_data): barcode = barcode_data     
     
-    return barcode_data
+    return barcode
