@@ -147,7 +147,7 @@ def roi_cropper(image, rg_product_thresh=0.15, b_thresh=100):
     
     else:
     
-        down_boundary = h
+        down_boundary = np.array([h])
 
     #cropp roi
     roi = cropped[up_boundary[0]:down_boundary[0],left_boundary[0]:right_boundary[0],:]

@@ -138,6 +138,6 @@ if __name__ == '__main__':
 
         line_number = exception_traceback.tb_lineno
         
-        print('{} - {}: '.format(filename, line_number, exception_traceback))
+        print('{} - {}: {}'.format(filename, line_number, exception_traceback))
         
     print("--- %s seconds ---" % (time.time() - start_time))

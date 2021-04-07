@@ -1,5 +1,6 @@
 .vscode
+.DS_Store
 .python-version
 __pycache__
-dev_analysis.ipynb
 debug.ipynb
+IVGA
