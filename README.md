@@ -1,26 +1,41 @@
-# Well analyzer software
-
-## Authors
-Michal Polak [1]
-
-[1] Palacky Univ, Fac Sci, Dept Chemical Biology & Genetics, Olomouc 77900, Czech Republic
+# In-vitro-plant-growth-analyzer
 
 ## Description
-The software is designed to evaluate batch of rgb images generated with standardized protocol of UPOL-Plant-phenotyping-research-group.
-Core of the software is mainly using methods of OpenCV, scipy, scikit-image library.
+The software is designed to evaluate batch of rgb images generated with standardized protocol of Arabidopsis in-vitro growing experiment.
+Software is coded in Python3 and mainly uses OpenCV, scipy, scikit-image libraries.
 
-Single image contains tray of given well-grid format. This is region of interest (ROI) for further analysis.
+Single image contains well-plate of given well-grid (growing areas) structure. This is region of interest (ROI) for further analysis.
 
-The goal is to evaluate spatial and color pattern of plant in each well.
+The goal is to evaluate spatial and color pattern of plant in each well (growing area).
 
 Software suppose various image formats jpg, png, bmp, tiff, tif as an input data.
 
+## Processing pipeline
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/raw.png?raw=true)
+
 Process of single image analysis follows these steps:
+
 1. ROI is cropped from raw image
-2. Tray is separated into well regions according to suitable tray mask
-3. Computation of spatial and color pattern for each well. Plant is segmented with custom segmentation approach suitable for this experiment.
-4. For each well, contour of plant and also well is identified
-5. All contours are painted into raw image
+
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/roi.png?raw=true)
+
+2. Reading barcode data
+
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/barcode.png?raw=true)
+
+3. Well plate is separated into growing areas according to suitable well plate mask
+
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/mask.png?raw=true)
+
+4. Plant segmentation in growing area
+
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/grow_area.png?raw=true)
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/plant_mask.png?raw=true)
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/segmented_plant.png?raw=true)
+
+5. All plant and growing areas contours are painted in raw image. For each well, plant area and color indexes are evaluated.
+ 
+![alt text](https://github.com/PolakMichalMLT/In-vitro-plant-growth-analyzer/blob/master/readme_images/final.png?raw=true)
 
 ## Output of analysis
 
