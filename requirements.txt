@@ -17,6 +17,6 @@ pytz==2019.3
 PyWavelets==1.1.1
 pyzbar==0.1.8
 scikit-image==0.18.1
-scipy==1.6.2
+scipy==1.10.0
 six==1.14.0
 tifffile==2021.3.31
